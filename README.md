@@ -25,5 +25,5 @@ Kompiuteryje būtina turėti  JDK, JRE.
 
 
 
-###Išvada:
+### Išvada:
 Programos užklausų veikimas datos intervalui lėtesnis, nes reikia programai išanalizuoti visą XML dokumentą nurodytu datos intervalu.
