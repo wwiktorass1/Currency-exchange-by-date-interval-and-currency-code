@@ -12,3 +12,9 @@ užklausos parametrai.
 ● Programa turi pateikti nurodytų valiutų kursus ir suskaičiuoti valiutos kurso pokytį nuo
 periodo pradžios iki periodo pabaigos.
 ● Duomenų saugojimas nebūtinas
+
+## Programos paleidimas
+
+Program1 galima paleisti per komandinę eilute, arba IDE aplinkoje.
+
+Kompiuteryje būtina turėti  JDK, JRE.
