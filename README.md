@@ -13,8 +13,10 @@ užklausos parametrai.
 periodo pradžios iki periodo pabaigos.
 ● Duomenų saugojimas nebūtinas
 
+Panaudojau LB Užsienio valiutų santykiai nurodytai dienai - getFxRates ir Užsienio valiutos santykiai laikotarpyje - getFxRatesForCurrency užklausas duomenims, kurie pateikiami tik Europos Centrinio Banko (EU) (duomenys bazėje nuo 2014-09-30).
+
 ## Programos paleidimas
 
-Program1 galima paleisti per komandinę eilute, arba IDE aplinkoje.
+Programą galima paleisti per komandinę eilute, arba IDE aplinkoje.
 
 Kompiuteryje būtina turėti  JDK, JRE.
