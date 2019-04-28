@@ -1,0 +1,217 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLConnection;
+import java.nio.charset.Charset;
+import java.text.ParseException;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+import java.util.*;
+import org.w3c.dom.Document;
+import org.xml.sax.InputSource;
+
+public class GetDataFromDataInterval {
+	private String date1 = "";
+	private String date2 = "";
+	private String ccy = "";
+
+	static private String maxDate = "";
+	static private String minDate = "";
+	static private double amtMaxDate;
+	static private double amtMinDate;
+
+	public GetDataFromDataInterval(String date1, String date2, String ccy) throws IOException {
+		this.setDate(date1);
+		this.setDate(date2);
+		this.setCcy(ccy);
+		connectAppy(date1, date2, ccy);
+	}
+
+	private void connectAppy(String date1, String date2, String ccy) throws IOException {
+
+		String url = "http://old.lb.lt/webservices/fxrates/FxRates.asmx/getFxRatesForCurrency?tp=EU&ccy=" + ccy
+				+ "&dtFrom=" + date1 + "&dtTo=" + date2;
+		String xml = crunchifyGetURLContents(url);
+		URL obj = new URL(url);
+
+		HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+		int responseCode = con.getResponseCode();
+
+		System.out.println("Serverio kodas : " + responseCode);
+		try {
+			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder builder = factory.newDocumentBuilder();
+			Document document = builder.parse(new InputSource(new StringReader(xml)));
+			int sumOfFxRate = (int) countAllFxrate(document);
+			setAmt(getRateOfCurency(maxDate, document, sumOfFxRate, ccy));
+			maxDate = maxDateOfXml(document, sumOfFxRate);
+			minDate = minDateOfXml(document, sumOfFxRate);
+			amtMaxDate = getRateOfCurency(maxDate, document, sumOfFxRate, ccy);
+			amtMinDate = getRateOfCurency(minDate, document, sumOfFxRate, ccy);
+
+		} catch (Exception e) {
+			System.out.println("nėra ryšio su URL:" + url);
+		}
+
+	}
+
+	private String minDateOfXml(Document document, int sumOfFxRate) throws XPathExpressionException {
+
+		List<LocalDate> dates2 = new ArrayList<LocalDate>();
+
+		for (int i = 1; i <= sumOfFxRate; i++) {
+
+			XPathFactory xPathfactory = XPathFactory.newInstance();
+			XPath xpath = xPathfactory.newXPath();
+			XPathExpression expr = xpath.compile("/FxRates//FxRate[" + i + "]/Dt");
+			String dateOfXml = expr.evaluate(document, XPathConstants.STRING).toString();
+			LocalDate date = LocalDate.parse(dateOfXml);
+
+			dates2.add(date);
+		}
+		LocalDate minDate = dates2.stream().min(Comparator.comparing(LocalDate::toEpochDay)).get();
+		String minDateStr = minDate.toString();
+
+		return minDateStr;
+	}
+
+	private static double getRateOfCurency(String maxDate, Document document, int sumOfFxRate, String curency)
+			throws XPathExpressionException {
+		double amt1 = 0.0;
+		XPathFactory xPathfactory = XPathFactory.newInstance();
+		XPath xpath = xPathfactory.newXPath();
+
+		for (int j = 1; j <= sumOfFxRate; j++) {
+			XPathExpression expr = xpath.compile("/FxRates//FxRate[" + j + "]/Dt");
+			String dateOfXml = expr.evaluate(document, XPathConstants.STRING).toString();
+
+			XPathExpression expr2 = xpath.compile("/FxRates//FxRate[" + j + "]//CcyAmt[2]//Ccy");
+			String ccy = expr2.evaluate(document, XPathConstants.STRING).toString();
+
+			if ((dateOfXml.equals(maxDate)) && (ccy.equals(curency))) {
+				XPathExpression expr3 = xpath.compile("/FxRates//FxRate[" + j + "]//CcyAmt[2]//Amt");
+				String Amtt = expr3.evaluate(document, XPathConstants.STRING).toString();
+
+				amt1 = Double.parseDouble(Amtt);
+				break;
+			}
+			continue;
+		}
+		return amt1;
+
+	}
+
+	private static String maxDateOfXml(Document document, int sumOfFxRate)
+			throws ParseException, XPathExpressionException {
+		List<LocalDate> dates = new ArrayList<LocalDate>();
+
+		for (int i = 1; i <= sumOfFxRate; i++) {
+
+			XPathFactory xPathfactory = XPathFactory.newInstance();
+			XPath xpath = xPathfactory.newXPath();
+			XPathExpression expr = xpath.compile("/FxRates//FxRate[" + i + "]/Dt");
+			String dateOfXml = expr.evaluate(document, XPathConstants.STRING).toString();
+			LocalDate date = LocalDate.parse(dateOfXml);
+
+			dates.add(date);
+		}
+		LocalDate maxDate = dates.stream().max(Comparator.comparing(LocalDate::toEpochDay)).get();
+		String maxDateStr = maxDate.toString();
+
+		return maxDateStr;
+	}
+
+	private static double countAllFxrate(Document document) throws XPathExpressionException {
+
+		XPathFactory xPathfactory = XPathFactory.newInstance();
+		XPath xpath = xPathfactory.newXPath();
+		XPathExpression exprr = xpath.compile("count(//FxRates/FxRate)");
+		double result = (double) exprr.evaluate(document, XPathConstants.NUMBER);
+		Double count = result;
+
+		return count;
+
+	}
+
+	public static String crunchifyGetURLContents(String myURL) {
+		StringBuilder sb = new StringBuilder();
+		URLConnection urlConn = null;
+		InputStreamReader in = null;
+		try {
+			URL url = new URL(myURL);
+			urlConn = url.openConnection();
+			if (urlConn != null)
+				urlConn.setReadTimeout(60 * 100000);
+			if (urlConn != null && urlConn.getInputStream() != null) {
+				in = new InputStreamReader(urlConn.getInputStream(), Charset.defaultCharset());
+				BufferedReader bufferedReader = new BufferedReader(in);
+				if (bufferedReader != null) {
+					int cp;
+					while ((cp = bufferedReader.read()) != -1) {
+						sb.append((char) cp);
+
+					}
+					bufferedReader.close();
+				}
+			}
+			in.close();
+		} catch (Exception e) {
+
+			throw new RuntimeException("nėra ryšio su URL:" + myURL);
+
+		}
+
+		return sb.toString();
+	}
+
+	public double getAmtMinDate() {
+		return amtMinDate;
+	}
+
+	public double getAmtMaxDate() {
+		return amtMaxDate;
+	}
+
+	public String getMaxDate() {
+		return maxDate;
+	}
+
+	public String getMinDate() {
+		return minDate;
+	}
+
+	public String getCcy() {
+		return ccy;
+	}
+
+	public String getDate() {
+		return date1;
+	}
+
+	public String getDate2() {
+		return date2;
+	}
+
+	private void setCcy(String ccy2) {
+
+	}
+
+	private void setDate(String date2) {
+
+	}
+
+	private void setAmt(double rateOfCurency) {
+
+	}
+}
