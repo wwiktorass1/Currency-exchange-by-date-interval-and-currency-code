@@ -20,3 +20,10 @@ Panaudojau LB Užsienio valiutų santykiai nurodytai dienai - getFxRates ir Užs
 Programą galima paleisti per komandinę eilute, arba IDE aplinkoje.
 
 Kompiuteryje būtina turėti  JDK, JRE.
+
+
+
+
+
+###Išvada:
+Programos užklausų veikimas datos intervalui lėtesnis, nes reikia programai išanalizuoti visą XML dokumentą nurodytu datos intervalu.
